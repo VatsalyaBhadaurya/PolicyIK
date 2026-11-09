@@ -48,6 +48,7 @@ class PolicyIKEnv(gym.Env):
         horizon: int = 160,
         q_nom: np.ndarray | None = None,
         start_near_goal_std: float | None = None,
+        squash_actions: bool = False,
         seed: int | None = None,
         **arm_kwargs,
     ) -> None:
@@ -58,9 +59,17 @@ class PolicyIKEnv(gym.Env):
         self.q_nom = HOME_Q.copy() if q_nom is None else np.asarray(q_nom, dtype=float)
         # reverse-curriculum knob: if set, starts are drawn near the goal config
         self.start_near_goal_std = start_near_goal_std
+        # tanh-squash the raw action over an unbounded space (for training): keeps
+        # the effective action in (-1, 1) with a gradient everywhere, avoiding the
+        # hard-clip dead zone that lets the policy mean escape the action bounds.
+        self.squash_actions = squash_actions
         self._rng = np.random.default_rng(seed)
 
-        self.action_space = spaces.Box(-1.0, 1.0, (ACT_DIM,), dtype=np.float32)
+        if squash_actions:
+            # wide finite bounds: tanh(10) ~ 1, so SB3's clip never bites in practice
+            self.action_space = spaces.Box(-10.0, 10.0, (ACT_DIM,), dtype=np.float32)
+        else:
+            self.action_space = spaces.Box(-1.0, 1.0, (ACT_DIM,), dtype=np.float32)
         self.observation_space = spaces.Box(-np.inf, np.inf, (OBS_DIM,), dtype=np.float32)
 
         self._goal_pos = np.zeros(3)
@@ -132,6 +141,8 @@ class PolicyIKEnv(gym.Env):
 
     def step(self, action: np.ndarray):
         action = np.asarray(action, dtype=float).reshape(ACT_DIM)
+        if self.squash_actions:
+            action = np.tanh(action)  # effective action in (-1, 1)
 
         # 1-2. error-dependent gain from the pre-step pose, then accumulate reference
         e_p0, e_R0 = self.arm.pose_error(self._goal_pos, self._goal_quat)

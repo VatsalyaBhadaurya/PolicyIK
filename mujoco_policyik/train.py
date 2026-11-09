@@ -27,7 +27,8 @@ from .env import PolicyIKEnv
 
 def make_env(seed: int, horizon: int, start_std: float | None):
     def _init():
-        env = PolicyIKEnv(horizon=horizon, start_near_goal_std=start_std, seed=seed)
+        env = PolicyIKEnv(horizon=horizon, start_near_goal_std=start_std,
+                          squash_actions=True, seed=seed)
         return env
     return _init
 

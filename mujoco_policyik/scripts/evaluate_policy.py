@@ -44,7 +44,7 @@ def run_baseline(make_ctrl, tasks, steps):
 
 
 def run_policy(model, obs_rms, clip_obs, tasks, steps):
-    env = PolicyIKEnv(horizon=steps)
+    env = PolicyIKEnv(horizon=steps, squash_actions=True)
     eps = 1e-8
     out = []
     for q0, gpos, gquat in tasks:
