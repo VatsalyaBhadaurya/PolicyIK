@@ -46,9 +46,33 @@ correctly and the task is solvable before any training.
 | Policy vs DLS vs QP evaluation | `mujoco_policyik/scripts/evaluate_policy.py` | 6-DoF analogue of Table 1 |
 
 Both classical baselines reproduce the paper's ordering (QP slightly beats DLS,
-lower median error). Training throughput is ~400–800 env-steps/s on CPU; the
-paper's precision needs a large budget (it trained 4,096 GPU-parallel envs for
-13k PPO epochs), so the included run is a single-workstation demonstration.
+lower median error) and are the solid, reproducible results in this port.
+
+### Training findings (honest status)
+
+The env, reward and formulation are verified correct: a zero action from the
+goal config earns the highest episode return (holding is optimal), and PPO
+provably maximises a dense control reward (`−‖a‖²`) on this env. Reaching the
+paper's **1 mm / 0.2°** precision with the learned policy did **not** converge at
+the single-workstation budget here. The diagnosis:
+
+- **Entropy must be ~0.** PolicyIK needs a near-deterministic policy; an entropy
+  bonus inflates the action std and (with bounded actions) drives the policy
+  mean past the bounds into a **saturation collapse** with vanishing gradients.
+  Fixed via `ent_coef=0` + tanh-squashed actions.
+- **Potential-shaping cap breaks PBRS invariance.** `φ = −min(50, ρ)` makes the
+  far field pay a constant `(1−γ)·50 = +0.5`/step, a flat plateau that traps
+  exploration. Raising the cap helps but is not sufficient alone.
+- **Variance / scale.** The residual failure is the known PPO instability on
+  sparse, shaped rewards with small batches: the policy briefly improves, then
+  drifts as noisy advantages are over-fit. The paper's stability comes from
+  **thousands of GPU-parallel envs** (4,096 envs, ~98k-step rollouts) giving
+  low-variance advantages, plus rl_games' bounds-loss and adaptive LR.
+
+**Faithful path to the paper's numbers:** the GPU-parallel Isaac/MJX stack with
+the paper's curriculum (or the off-policy FlashSAC+HER hardware recipe) — not
+SB3-PPO-on-CPU. The training infrastructure here is correct and reusable; it is
+compute-bound, not logic-bound.
 
 ### Quick start
 
