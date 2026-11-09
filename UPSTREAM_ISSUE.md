@@ -11,7 +11,7 @@ Companion MuJoCo port (6‑DoF UR5e, CPU + GPU) — baselines reproduced; intere
 
 ## Body
 
-Hi — thanks for a really nice paper and for releasing the code. 👏
+Hi,  thanks for a really nice paper and for releasing the code. 👏
 
 To make it easier to build on PolicyIK **without an Isaac Sim / Omniverse setup**, I put together a from‑scratch **MuJoCo port of the formulation on a 6‑DoF arm (UR5e)**:
 
@@ -28,23 +28,23 @@ It re‑implements the core of Sections 4.1–4.3 (accumulated joint reference w
 ### What's working / verified
 
 - **Classical baselines reproduce your Table 1 ordering.** Damped‑least‑squares on the UR5e gives **51.0% strict / 0.95 mm median**, essentially matching your reported DLS (50.4% / 0.94 mm); a resolved‑rate QP slightly beats it, as in the paper.
-- **The env matches the plant.** Feeding DLS increments through the accumulated‑reference action reproduces the underlying controller to ~1e‑13 mm on identical tasks — a sanity check that the formulation is wired correctly.
+- **The env matches the plant.** Feeding DLS increments through the accumulated‑reference action reproduces the underlying controller to ~1e‑13 mm on identical tasks - a sanity check that the formulation is wired correctly.
 - **Dominant failure mode confirmed.** ~50% of DLS strict failures on the UR5e end with a joint within 2% of a limit (consistent with your 71–81% on the 7‑DoF arm), which is exactly where a learned policy should help.
-- **Your deployment protocol ports cleanly** and lifts the classical baselines here too (corrected‑goal + transient‑goal retries):
 - **GPU‑parallel training runs end‑to‑end** (MJX + Brax PPO on an RTX 4050 via WSL2): env `jit`+`vmap` on GPU, PPO trains/evaluates/saves.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/VatsalyaBhadaurya/PolicyIK/main/assets/deployment.png" width="55%">
 </p>
+<p align="center"><em>Your deployment protocol (corrected‑goal + transient‑goal retries) ports cleanly and lifts the classical baselines on the UR5e too.</em></p>
 
 ### Honest status
 
-The **training infrastructure is complete and verified**, but converging the learned policy to your **1 mm / 0.2°** precision is **compute‑bound** on my hardware (a 6 GB laptop GPU caps env count) — so the solid, reproducible results in the port today are the **DLS/QP baselines**, not yet a paper‑level learned policy. I didn't want to overstate that.
+The **training infrastructure is complete and verified**, but converging the learned policy to your **1 mm / 0.2°** precision is **compute‑bound** on my hardware (a 6 GB laptop GPU caps env count) - so the solid, reproducible results in the port today are the **DLS/QP baselines**, not yet a paper‑level learned policy. I didn't want to overstate that.
 
 ### Why it might be useful to the project
 
-1. **Lower barrier to entry** — people can try PolicyIK ideas on CPU or a single consumer GPU, no Omniverse needed.
-2. **A second embodiment** — a 6‑DoF UR5e alongside your 7‑DoF OpenArm / xArm7, which is a small concrete step toward the **cross‑embodiment** generalization your VLA motivation calls for (one policy conditioned on kinematics across arms).
+1. **Lower barrier to entry** - people can try PolicyIK ideas on CPU or a single consumer GPU, no Omniverse needed.
+2. **A second embodiment** - a 6‑DoF UR5e alongside your 7‑DoF OpenArm / xArm7, which is a small concrete step toward the **cross‑embodiment** generalization your VLA motivation calls for (one policy conditioned on kinematics across arms).
 3. **A clean reference** of the reward/observation design in plain NumPy/JAX that may be handy for others reading the paper.
 
 ### A couple of improvement ideas I'd love your take on
@@ -59,3 +59,7 @@ The **training infrastructure is complete and verified**, but converging the lea
 - Anything in the formulation you'd want mirrored differently so a MuJoCo version stays faithful to your intent?
 
 Happy to open focused PRs (e.g., tests for the pure‑function metric utilities, or docs) if that's more useful than a link. Thanks again!
+
+Warm Regards,
+Vatsalya Bhadaurya
+www.vatsalyaaa.me
