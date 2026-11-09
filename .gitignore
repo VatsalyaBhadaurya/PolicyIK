@@ -1,0 +1,18 @@
+# reference material kept locally, not part of this repo
+repo/
+menagerie_tmp/
+*.pdf
+paper.txt
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# outputs
+outputs/
+logs/
+*.npz
+!models/**/*.npz
