@@ -32,19 +32,23 @@ def make_env(seed: int, horizon: int, start_std: float | None):
     return _init
 
 
-def build_vec_env(n_envs: int, horizon: int, start_std: float | None, subproc: bool, seed: int):
+def build_vec_env(n_envs: int, horizon: int, start_std: float | None, subproc: bool,
+                  seed: int, norm_reward: bool = True):
     fns = [make_env(seed + i, horizon, start_std) for i in range(n_envs)]
     venv = SubprocVecEnv(fns) if subproc else DummyVecEnv(fns)
-    return VecNormalize(venv, norm_obs=True, norm_reward=False, clip_obs=10.0)
+    # reward normalisation stabilises PPO here: the progress term (weight ~27)
+    # otherwise produces high-variance returns and saturates the policy mean.
+    return VecNormalize(venv, norm_obs=True, norm_reward=norm_reward, clip_obs=10.0)
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--timesteps", type=int, default=2_000_000)
     p.add_argument("--n-envs", type=int, default=16)
-    p.add_argument("--n-steps", type=int, default=64, help="rollout steps per env")
+    p.add_argument("--n-steps", type=int, default=128, help="rollout steps per env")
     p.add_argument("--batch-size", type=int, default=512)
-    p.add_argument("--lr", type=float, default=1e-3)
+    p.add_argument("--lr", type=float, default=3e-4)
+    p.add_argument("--ent-coef", type=float, default=0.005)
     p.add_argument("--horizon", type=int, default=160)
     p.add_argument("--subproc", action="store_true", help="use SubprocVecEnv (true parallelism)")
     p.add_argument("--device", default="cpu", help="cpu is usually faster for a tiny MLP")
@@ -61,7 +65,7 @@ def main() -> None:
     model = PPO(
         "MlpPolicy", venv,
         learning_rate=args.lr, n_steps=args.n_steps, batch_size=args.batch_size,
-        n_epochs=5, gamma=0.99, gae_lambda=0.95, clip_range=0.2, ent_coef=0.01,
+        n_epochs=5, gamma=0.99, gae_lambda=0.95, clip_range=0.2, ent_coef=args.ent_coef,
         max_grad_norm=1.0, policy_kwargs=policy_kwargs, device=args.device,
         seed=args.seed, verbose=1,
     )
