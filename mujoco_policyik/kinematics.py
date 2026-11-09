@@ -14,9 +14,18 @@ __all__ = [
     "quat_multiply",
     "quat_to_mat",
     "quat_error_rotvec_body",
+    "quat_from_axis_angle",
     "rotvec_from_quat",
     "pose_error",
 ]
+
+
+def quat_from_axis_angle(axis: np.ndarray, angle: float) -> np.ndarray:
+    """(w, x, y, z) quaternion for a rotation of ``angle`` rad about unit ``axis``."""
+    axis = np.asarray(axis, dtype=float)
+    axis = axis / max(np.linalg.norm(axis), 1e-12)
+    h = 0.5 * angle
+    return np.concatenate([[np.cos(h)], np.sin(h) * axis])
 
 
 def quat_conjugate(q: np.ndarray) -> np.ndarray:

@@ -131,6 +131,19 @@ PYTHONPATH=. python -m mujoco_policyik.mjx.evaluate_mjx \
 Output (strict/coarse success, median pos/ori error) is printed per controller.
 Meaningful policy numbers require first running the GPU training above.
 
+## Improving PolicyIK further (Goal 2)
+
+[`IMPROVEMENTS.md`](IMPROVEMENTS.md) is a prioritized, evidence-backed roadmap of
+where PolicyIK can be improved. One item is implemented and measured here: a
+**controller-agnostic deployment protocol** (`mujoco_policyik/deployment.py`,
+`scripts/evaluate_deployment.py`) with corrected-goal + transient-goal retries,
+which lifts DLS 29→35% and QP 30→37% strict success on the UR5e — the same
+mechanism that takes the paper's policy to 98.9%.
+
+```bash
+python -m mujoco_policyik.scripts.evaluate_deployment --tasks 200
+```
+
 ## Credits
 
 Method and reference implementation: *PolicyIK: High-Precision Inverse
