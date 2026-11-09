@@ -116,10 +116,20 @@ pip install -r mujoco_policyik/mjx/requirements_mjx.txt
 PYTHONPATH=. python -m mujoco_policyik.mjx.train_mjx --timesteps 30000000 --num-envs 2048
 ```
 
-## Next phases
+## Phase D — benchmark vs classical IK ✅
 
-- **Phase D** — benchmark the trained PolicyIK policy (CPU or MJX) vs. DLS/QP on
-  held-out 6-DoF tasks, stressing joint-limit / singularity cases.
+`mujoco_policyik/mjx/evaluate_mjx.py` loads the MJX-trained params and runs the
+policy against DLS and QP on the **same** held-out tasks (the 6-DoF analogue of
+Table 1). Validated end-to-end; a `scripts/evaluate_policy.py` counterpart does
+the same for a CPU SB3 policy.
+
+```bash
+PYTHONPATH=. python -m mujoco_policyik.mjx.evaluate_mjx \
+    --params outputs/mjx_ppo/params.pkl --tasks 256
+```
+
+Output (strict/coarse success, median pos/ori error) is printed per controller.
+Meaningful policy numbers require first running the GPU training above.
 
 ## Credits
 

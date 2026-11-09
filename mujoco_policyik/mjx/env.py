@@ -105,6 +105,22 @@ class PolicyIKMJX(Env):
         metrics = {"e_pos": e_p, "e_ori": e_R, "within_tol": (rho <= 1.0).astype(jnp.float32)}
         return State(data, obs, jnp.float32(0.0), jnp.float32(0.0), metrics, info)
 
+    def reset_to(self, q_start, goal_pos, goal_quat) -> State:
+        """Deterministic reset to a fixed task (for evaluation on a held-out set)."""
+        q0 = jnp.asarray(q_start)
+        gpos, gquat = jnp.asarray(goal_pos), jnp.asarray(goal_quat)
+        data = mjx.forward(self._m, mjx.make_data(self._m).replace(qpos=q0, ctrl=q0))
+        pos, quat = self._fk(data)
+        e_p, e_R = F.pose_error(pos, quat, gpos, gquat)
+        rho = F.rho_of(e_p, e_R, self._cfg)
+        prev_phi = -jnp.minimum(self._cfg.shape_cap, rho)
+        prev_a = jnp.zeros(self._nu)
+        obs = self._obs(data, gpos, gquat, q0, rho, rho, prev_a)
+        info = {"z": q0, "best": rho, "prev_phi": prev_phi, "gpos": gpos,
+                "gquat": gquat, "prev_a": prev_a, "rng": jax.random.PRNGKey(0)}
+        metrics = {"e_pos": e_p, "e_ori": e_R, "within_tol": (rho <= 1.0).astype(jnp.float32)}
+        return State(data, obs, jnp.float32(0.0), jnp.float32(0.0), metrics, info)
+
     def step(self, state: State, action) -> State:
         c = self._cfg
         data, info = state.pipeline_state, state.info
