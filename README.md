@@ -10,6 +10,13 @@ full end-effector poses within **1 mm / 0.2°**, beating damped-least-squares
 (DLS), QP and MPC IK. The reference code is built on Isaac Lab for a 7-DoF
 OpenArm; this repo rebuilds the plant and baselines in MuJoCo for a 6-DoF arm.
 
+<p align="center">
+  <img src="assets/ur5e_reach.png" width="46%">
+  <img src="assets/convergence.png" width="52%">
+</p>
+<p align="center"><em>6-DoF UR5e in MuJoCo, and a reach-and-hold within 1 mm / 0.2°
+(the reach→hold profile of the paper's Fig. 1b, reproduced here with DLS).</em></p>
+
 ## Status — Phase A (plant + classical baseline) ✅
 
 | Piece | Module | Notes |
@@ -139,6 +146,10 @@ where PolicyIK can be improved. One item is implemented and measured here: a
 `scripts/evaluate_deployment.py`) with corrected-goal + transient-goal retries,
 which lifts DLS 29→35% and QP 30→37% strict success on the UR5e — the same
 mechanism that takes the paper's policy to 98.9%.
+
+<p align="center">
+  <img src="assets/deployment.png" width="55%">
+</p>
 
 ```bash
 python -m mujoco_policyik.scripts.evaluate_deployment --tasks 200
