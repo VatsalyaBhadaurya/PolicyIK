@@ -1,0 +1,8 @@
+# GPU-parallel MJX training stack (install in a Linux / WSL2 venv with CUDA).
+# Native-Windows JAX is CPU-only; GPU needs WSL2 or Linux. Pinned to a
+# known-good, mutually compatible set (jax 0.4.x keeps jax.device_put_replicated,
+# which brax 0.12.x still uses; mjx ships inside mujoco 3.2.x).
+jax[cuda12]==0.4.38
+mujoco==3.2.7
+mujoco-mjx==3.2.7
+brax==0.12.1

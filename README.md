@@ -101,12 +101,25 @@ reported DLS behaviour closely:
 Large-error tasks correspond to goals near joint limits / singularities, the
 classical-IK failure mode PolicyIK is designed to overcome.
 
+## Phase C+ — GPU-parallel training (MJX + Brax) ✅ infra
+
+Because SB3-on-CPU is variance/compute-bound, `mujoco_policyik/mjx/` reimplements
+the env in JAX/MJX so thousands of UR5e environments step on the GPU (the paper's
+key to stable PPO). Verified end-to-end on an RTX 4050 via WSL2: the env runs
+jit+vmap on GPU, Brax PPO trains/evaluates/saves, and reward improves early.
+Reaching the paper's precision is a multi-hour run on a laptop GPU, so it's
+left as a user-launched job. See [`mujoco_policyik/mjx/README.md`](mujoco_policyik/mjx/README.md).
+
+```bash
+# in WSL2 (GPU JAX); native-Windows JAX is CPU-only
+pip install -r mujoco_policyik/mjx/requirements_mjx.txt
+PYTHONPATH=. python -m mujoco_policyik.mjx.train_mjx --timesteps 30000000 --num-envs 2048
+```
+
 ## Next phases
 
-- **Phase C** — vectorised env + PPO training (reverse curriculum via
-  `start_near_goal_std`, near-goal sampling); add a QP IK baseline.
-- **Phase D** — benchmark the trained PolicyIK policy vs. DLS/QP on held-out
-  6-DoF tasks, stressing joint-limit / singularity cases.
+- **Phase D** — benchmark the trained PolicyIK policy (CPU or MJX) vs. DLS/QP on
+  held-out 6-DoF tasks, stressing joint-limit / singularity cases.
 
 ## Credits
 
