@@ -20,11 +20,28 @@ OpenArm; this repo rebuilds the plant and baselines in MuJoCo for a 6-DoF arm.
 | Success metrics (final-1 s window) | `mujoco_policyik/metrics.py` | strict 1 mm/0.2°, coarse 1 cm/2° |
 | Benchmark harness / smoke test | `mujoco_policyik/scripts/demo_dls.py` | — |
 
+## Status — Phase B (PolicyIK formulation) ✅
+
+The three design pillars (Sections 4.1–4.3), ported to 6-DoF:
+
+| Piece | Module | Notes |
+|---|---|---|
+| Error-dependent action gain, multiscale pose channels, keypoints, reward stack | `mujoco_policyik/formulation.py` | Eq. 2, 6, 7, 8, 10; all constants from the released config |
+| Goal-conditioned env (50-D obs, 6-D action) | `mujoco_policyik/env.py` | accumulated reference + command-state feedback `d_t = z_t − q_t` |
+| Env verification | `mujoco_policyik/scripts/check_env.py` | shapes, gain schedule, hold-from-goal, DLS-oracle plumbing check |
+
+The **50-D observation**: `[q−q_nom(6), q̇(6), goal_pos(3), keypoint_offsets(9),
+pose_coarse(6), pose_fine(6), error_history(2), command_state(6), prev_action(6)]`.
+The accumulated-reference action is verified to reproduce the DLS plant to
+machine precision (`check_env` test 4), confirming the formulation is wired
+correctly and the task is solvable before any training.
+
 ### Quick start
 
 ```bash
 pip install -r requirements.txt
-python -m mujoco_policyik.scripts.demo_dls --tasks 200
+python -m mujoco_policyik.scripts.demo_dls --tasks 200   # classical DLS baseline
+python -m mujoco_policyik.scripts.check_env --tasks 60   # verify the PolicyIK env
 ```
 
 The arm is driven through a joint reference `z` tracked by a finite-gain PD
@@ -46,13 +63,10 @@ classical-IK failure mode PolicyIK is designed to overcome.
 
 ## Next phases
 
-- **Phase B** — port the PolicyIK formulation to 6-DoF: accumulated
-  joint-reference action with error-dependent gain, the 50-D observation
-  (incl. command-state feedback `d_t = z_{t-1} − q_t` and multiscale pose
-  channels), and the progress/dwell reward stack.
-- **Phase C** — vectorised Gym env + PPO training; add a QP IK baseline.
-- **Phase D** — benchmark PolicyIK vs. DLS/QP on held-out 6-DoF tasks,
-  stressing joint-limit / singularity cases.
+- **Phase C** — vectorised env + PPO training (reverse curriculum via
+  `start_near_goal_std`, near-goal sampling); add a QP IK baseline.
+- **Phase D** — benchmark the trained PolicyIK policy vs. DLS/QP on held-out
+  6-DoF tasks, stressing joint-limit / singularity cases.
 
 ## Credits
 
