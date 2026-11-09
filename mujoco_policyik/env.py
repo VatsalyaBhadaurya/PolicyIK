@@ -69,6 +69,11 @@ class PolicyIKEnv(gym.Env):
         self._rstate = RewardState()
         self._t = 0
 
+    # -- curriculum -------------------------------------------------------
+    def set_start_std(self, std: float | None) -> None:
+        """Reverse-curriculum knob: std (rad) of near-goal starts; ``None`` = full random."""
+        self.start_near_goal_std = std
+
     # -- helpers ----------------------------------------------------------
     def _sample_start(self, q_star: np.ndarray) -> np.ndarray:
         lo, hi = self.arm.joint_range[:, 0], self.arm.joint_range[:, 1]

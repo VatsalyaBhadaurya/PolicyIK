@@ -36,12 +36,28 @@ The accumulated-reference action is verified to reproduce the DLS plant to
 machine precision (`check_env` test 4), confirming the formulation is wired
 correctly and the task is solvable before any training.
 
+## Status — Phase C (training + QP baseline) ✅
+
+| Piece | Module | Notes |
+|---|---|---|
+| Resolved-rate QP IK baseline | `mujoco_policyik/baselines/qp_ik.py` | box-constrained (joint limits) via `lsq_linear`; velocity-scaled |
+| PPO training (SB3) | `mujoco_policyik/train.py` | shared [256,256] ELU MLP, VecNormalize obs, γ0.99/GAE0.95 |
+| Reverse curriculum | `mujoco_policyik/curriculum.py` | start spread grows from near-goal to full-random |
+| Policy vs DLS vs QP evaluation | `mujoco_policyik/scripts/evaluate_policy.py` | 6-DoF analogue of Table 1 |
+
+Both classical baselines reproduce the paper's ordering (QP slightly beats DLS,
+lower median error). Training throughput is ~400–800 env-steps/s on CPU; the
+paper's precision needs a large budget (it trained 4,096 GPU-parallel envs for
+13k PPO epochs), so the included run is a single-workstation demonstration.
+
 ### Quick start
 
 ```bash
 pip install -r requirements.txt
-python -m mujoco_policyik.scripts.demo_dls --tasks 200   # classical DLS baseline
-python -m mujoco_policyik.scripts.check_env --tasks 60   # verify the PolicyIK env
+python -m mujoco_policyik.scripts.demo_dls --tasks 200    # classical DLS baseline
+python -m mujoco_policyik.scripts.check_env --tasks 60    # verify the PolicyIK env
+python -m mujoco_policyik.train --timesteps 1_200_000 --n-envs 16   # train PolicyIK
+python -m mujoco_policyik.scripts.evaluate_policy --model outputs/policyik_ppo --tasks 200
 ```
 
 The arm is driven through a joint reference `z` tracked by a finite-gain PD
