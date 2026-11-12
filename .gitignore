@@ -21,3 +21,7 @@ logs/
 piper_data/
 piper_eepose/
 *.parquet
+
+# piper training dataset (large) and scratch helpers
+piper_train/
+mujoco_policyik/piper/_*.sh
