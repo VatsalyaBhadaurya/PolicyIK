@@ -16,3 +16,8 @@ outputs/
 logs/
 *.npz
 !models/**/*.npz
+
+# piper datasets (large; user's HF data)
+piper_data/
+piper_eepose/
+*.parquet
