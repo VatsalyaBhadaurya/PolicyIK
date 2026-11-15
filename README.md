@@ -155,6 +155,57 @@ mechanism that takes the paper's policy to 98.9%.
 python -m mujoco_policyik.scripts.evaluate_deployment --tasks 200
 ```
 
+## Goal 3 — a policy acting *through* IK on a real arm (ACT → IK → Piper) ✅
+
+The paper's motivation is that a vision-language-action (VLA) policy can act on *any*
+arm by predicting **end-effector poses** and leaving the pose→joint conversion to IK.
+We built and tested that interface end-to-end on an **AgileX Piper** (6-DoF + gripper)
+using a real pick-and-place dataset ([`aiengineer56/piper_dataset_1100`](https://huggingface.co/datasets/aiengineer56/piper_dataset_1100),
+1116 episodes, 2 cameras), all on a 6 GB laptop GPU.
+
+<p align="center">
+  <img src="assets/step6_schematic.png" width="94%">
+</p>
+
+**Pipeline** (`mujoco_policyik/piper/`):
+1. **Piper in MuJoCo** (Menagerie model + a TCP site); FK validated against the
+   dataset joints (a clean pick-place EE trajectory).
+2. **Dataset transform** — FK the demos' joint actions into
+   `action = [ee_pos(3), ee_rot6d(6), gripper(1)]` (`transform_dataset.py`).
+3. **Train ACT** (LeRobot) in two flavours — **EE-pose output** and a **joint-output
+   baseline** — on identical images/state.
+4. **Executor** (`act_ik_executor.py`) — ACT predicts an EE pose; a damped-least-squares
+   Piper IK (`piper_ik.py`, **0.07 mm** residual) turns it into joint references.
+
+**Result** — EE-pose + IK (`ACT-EEpose`) vs direct-joint ACT, median over 40 held-out
+frames (`eval_step6.py`). Full write-up + figures in
+[`assets/step6_report.pdf`](assets/step6_report.pdf):
+
+<p align="center">
+  <img src="assets/step6_comparison.png" width="80%">
+</p>
+
+| metric (↓ better) | ACT-joint | ACT-EEpose + IK |
+|---|---|---|
+| task-space position | 23.6 mm | **21.6 mm** |
+| task-space orientation | 4.42° | **3.85°** |
+| joint-space MAE | **0.0295 rad** | 0.0553 rad |
+
+**Takeaway:** routing the policy through IK (predicting a *pose*, not joints) places
+the end-effector **more accurately in task space** — the quantity that matters for
+manipulation and for cross-embodiment transfer — while direct-joint ACT only wins the
+(less relevant) joint-space match, since IK is free to reach the same pose via a
+different valid joint configuration. *(Offline, open-loop action-prediction error; a
+closed-loop task-success rollout is the definitive next test. ACT-EEpose@15k vs
+ACT-joint@10k — both converged.)*
+
+<p align="center">
+  <img src="assets/step6_convergence.png" width="60%">
+</p>
+
+> Figures follow the [`scientific-figure-making`](https://github.com/ChenLiu-1996/figures4papers)
+> house style; regenerate with `python -m mujoco_policyik.piper.make_report`.
+
 ## Credits
 
 Method and reference implementation: *PolicyIK: High-Precision Inverse
