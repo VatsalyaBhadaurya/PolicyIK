@@ -18,6 +18,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.patches import FancyBboxPatch
 
 # --- scientific-figure-making house style (from references/api.md) ---------
 PALETTE = {
@@ -90,6 +91,47 @@ def _loss_curve(path):
                 xs.append(i * 50)          # log_freq = 50
                 ys.append(float(m.group(1)))
     return np.array(xs), np.array(ys)
+
+
+def _box(ax, x, w, text, fc, tc="black", fs=12.5):
+    y, h = 0.30, 0.42
+    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.006,rounding_size=0.02",
+                                fc=fc, ec="black", lw=2.2))
+    ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=fs,
+            color=tc, fontweight="bold", linespacing=1.45)
+
+
+def _arrow(ax, x1, x2, label=None):
+    y = 0.51
+    ax.annotate("", xy=(x2, y), xytext=(x1, y),
+                arrowprops=dict(arrowstyle="-|>", lw=2.6, color="#333333"))
+    if label:
+        ax.text((x1 + x2) / 2, y + 0.07, label, ha="center", fontsize=10.5,
+                style="italic", color="#555555")
+
+
+def fig_schematic():
+    apply_publication_style(FigureStyle(font_size=13, axes_linewidth=2.2))
+    fig, ax = plt.subplots(figsize=(16, 3.8))
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
+    w, gap = 0.148, 0.022
+    xs = [i * (w + gap) for i in range(6)]
+    boxes = [
+        ("Observations\ncam_global +\ncam_gripper +\njoint state", PALETTE["neutral"], "black"),
+        ("ACT policy\n52M params\n(ResNet + Transf.)", PALETTE["blue_main"], "white"),
+        ("EE-pose action\npos(3) +\nrot6d(6) +\ngripper", PALETTE["teal"], "white"),
+        ("Inverse Kinematics\n(DLS, Piper)\n0.07 mm residual", PALETTE["green_3"], "black"),
+        ("Joint references\n6 joints +\ngripper", PALETTE["neutral"], "black"),
+        ("Piper arm\nPD-tracked", PALETTE["blue_secondary"], "white"),
+    ]
+    for x, (text, fc, tc) in zip(xs, boxes):
+        _box(ax, x, w, text, fc, tc)
+    for i in range(5):
+        _arrow(ax, xs[i] + w, xs[i + 1])
+    fig.suptitle("ACT acts through IK on the Piper  (policy predicts an end-effector pose; IK executes it)",
+                 y=0.98, fontsize=16, fontweight="bold")
+    finalize_figure(fig, os.path.join(OUT, "step6_schematic"))
+    plt.close(fig)
 
 
 def fig_comparison():
@@ -168,9 +210,10 @@ def build_pdf():
         fig.text(0.08, 0.36, takeaway, ha="left", va="top", fontsize=11.5, family="monospace")
         pdf.savefig(fig); plt.close(fig)
 
-        # pages 2-3 - the figures
-        for base, cap in (("step6_comparison", "Figure 1. Per-metric comparison."),
-                          ("step6_convergence", "Figure 2. Training convergence.")):
+        # pages 2-4 - the figures
+        for base, cap in (("step6_schematic", "Figure 1. Pipeline: observations -> ACT -> EE-pose -> IK -> Piper joints."),
+                          ("step6_comparison", "Figure 2. Per-metric comparison (lower is better)."),
+                          ("step6_convergence", "Figure 3. ACT training convergence.")):
             img = plt.imread(os.path.join(OUT, f"{base}.png"))
             fig = plt.figure(figsize=(11.69, 8.27))  # A4 landscape
             ax = fig.add_axes([0.03, 0.08, 0.94, 0.86]); ax.axis("off")
@@ -181,6 +224,7 @@ def build_pdf():
 
 
 def main():
+    fig_schematic()
     fig_comparison()
     fig_convergence()
     build_pdf()
